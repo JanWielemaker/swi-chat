@@ -40,7 +40,9 @@
 
 :- use_module(chatroom).
 
+% This is a demo.  Be chatty.  Comment for silent operation
 :- debug(websocket).
+:- debug(chat).
 
 /** <module> A scalable websocket based chat server in SWI-Prolog
 
@@ -68,8 +70,6 @@ is fairly straighforward:
     chatroom_add/2
 */
 
-% be a bit chatty.  Comment for silent operation.
-:- debug(chat).
 
 %%	server is det.
 %%	server(?Port) is det.
@@ -100,7 +100,7 @@ server(Port) :-
 		http_upgrade_to_websocket(
 		    accept_chat,
 		    [ guarded(false),
-		      subprotocols([echo])
+		      subprotocols([chat])
 		    ]),
 		[ id(chat_websocket)
 		]).
@@ -126,10 +126,7 @@ chat_page -->
 		       onkeypress('handleInput(event)'),
 		       style('width:100%; border:solid 1px black;'+
 			     'padding: 5px; box-sizing: border-box')
-		     ], []),
-	       div([ id(error),
-		     style('color: red')
-		   ], [])
+		     ], [])
 	     ]),
 	script.
 
@@ -155,7 +152,7 @@ var connection;
 
 function openWebSocket() {
   connection = new WebSocket("ws://"+window.location.host+WebSocketURL,
-			     ['echo']);
+			     ['chat']);
 
   connection.onerror = function (error) {
     console.log('WebSocket Error ' + error);
@@ -177,10 +174,6 @@ function sendChat(msg) {
 window.addEventListener("DOMContentLoaded", openWebSocket, false);
 		  |}).
 
-
-:- dynamic
-	chat_control/2,				% Pipe, Queue
-	utterance/1.				% Message
 
 %%	accept_chat(+WebSocket) is det.
 %
