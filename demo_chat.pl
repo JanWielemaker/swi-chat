@@ -88,7 +88,8 @@ server :-
 	server(3050).
 
 server(Port) :-
-	(   debugging(chat)
+	(   debugging(chat),
+	    current_prolog_flag(gui, true)
 	->  prolog_ide(thread_monitor)
 	;   true
 	),
