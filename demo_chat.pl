@@ -41,8 +41,15 @@
 :- use_module(chatroom).
 
 % This is a demo.  Be chatty.  Comment for silent operation
-:- debug(websocket).
-:- debug(chat).
+% :- debug(websocket).
+% :- debug(chatroom(wait)).		% quite noisy
+:- debug(chatroom(event)).		% new events
+:- debug(chatroom(door)).		% visitors joining and leaving
+:- debug(chatroom(broadcast)).		% messages sent
+:- debug(chatroom(thread)).		% give threads a name
+:- debug(chat).				% this demo
+:- debug_message_context(+time).	% add timestamp to debug message
+
 
 /** <module> A scalable websocket based chat server in SWI-Prolog
 

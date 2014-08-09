@@ -43,9 +43,6 @@
 :- use_module(library(ordsets)).
 :- use_module(library(http/websocket)).
 
-:- debug(chatroom).
-:- debug_message_context(+time).
-
 /** <module> Manage chatroom
 
 This library manages a  chatroom  that   consists  of  clients  that are
@@ -100,7 +97,7 @@ created on demand and die if no more work needs to be done.
 %	After creating a chatroom, the   application  normally creates a
 %	thread  that  listens  to  Room.queues.event  and  exposes  some
 %	mechanisms to establish websockets and  add   them  to  the room
-%	using chatroom_add/2.
+%	using chatroom_add/3.
 %
 %	@see	http_upgrade_to_websocket/3 establishes a websocket from
 %		the SWI-Prolog webserver.
@@ -119,6 +116,10 @@ chatroom_create(RoomName, Room, _Options) :-
 				}},
 	assertz(chatroom(RoomName, Room)).
 
+
+%%	current_chatroom(?Name, ?Room) is nondet.
+%
+%	True when there exists a chatroom Room with Name.
 
 current_chatroom(RoomName, Room) :-
 	chatroom(RoomName, Room).
@@ -150,6 +151,9 @@ therefore most of the time one thread will walk away with all websockets
 and the others commit suicide because there is nothing to wait for.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+:- meta_predicate
+	chatroom_thread(0, +, +).
+
 %%	chatroom_add(+Room, +WebSocket, ?Id) is det.
 %
 %	Add a WebSocket to the chatroom.  Id   is  used to identify this
@@ -169,12 +173,11 @@ chatroom_add(RoomName, WebSocket, Id) :-
 	thread_send_message(Room.queues.wait, WebSocket),
 	thread_send_message(Room.queues.event,
 			    chatroom{joined:Id}),
+	debug(chatroom(door), 'Joined ~w: ~w', [RoomName, Id]),
 	create_wait_thread(Room).
 
 create_wait_thread(Room) :-
-	gensym(chatroom_wait_, Id),
-	thread_create(wait_for_sockets(Room), _,
-		      [detached(true), alias(Id)]).
+	chatroom_thread(wait_for_sockets(Room), Room, chatroom_wait_).
 
 wait_for_sockets(Room) :-
 	wait_for_sockets(Room, 64).
@@ -283,9 +286,7 @@ create_reader_threads(Room) :-
 	       create_reader_thread(Room)).
 
 create_reader_thread(Room) :-
-	gensym(chatroom_read_ws_, Id),
-	thread_create(read_message(Room), _,
-		      [detached(true), alias(Id)]).
+	chatroom_thread(read_message(Room), Room, chatroom_read_ws_).
 
 read_message(Room) :-
 	Queues = Room.queues,
@@ -296,7 +297,7 @@ read_message(Room) :-
 	->  (   _{opcode:close, data:end_of_file} :< Message
 	    ->	eof(WS)
 	    ;	Event = Message.put(_{client:Id, chatroom:RoomName}),
-		debug(chatroom, 'Event: ~p', [Event]),
+		debug(chatroom(event), 'Event: ~p', [Event]),
 		thread_send_message(Queues.event, Event),
 		thread_send_message(Queues.wait, WS),
 		(   message_queue_property(Queues.ready, size(0))
@@ -323,6 +324,8 @@ read_message(_).
 %	Prolog garbage collector.
 
 io_error(WebSocket, RW, Error) :-
+	debug(chatroom(door), 'Got ~w error on ~w: ~p',
+	      [RW, WebSocket, Error]),
 	retract(websocket(RoomName, WebSocket, _Queue, _Lock, Id)), !,
 	catch(ws_close(WebSocket, 1011, Error), E,
 	      print_message(warning, E)),
@@ -339,13 +342,24 @@ eof(WebSocket) :-
 
 
 		 /*******************************
-		 *	     BROADCAST		*
+		 *	  SENDING MESSAGES	*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Do we need to keep a counter of  pending external messages, such that it
-is cheap for a monitoring thread to  see whether it should allocate more
-broadcasting threads?
+My  initial  thought  about  sending  messages    was  to  add  a  tuple
+WebSocket-Message to an output  queue  and   have  a  dynamic  number of
+threads sending these messages to the   websockets. But, it is desirable
+that, if multiple messages are sent to  a particular client, they arrive
+in this order. As multiple threads are performing this task, this is not
+easy to guarantee. Therefore, we create an  output queue and a mutex for
+each client. An output thread will   walk  along the websockets, looking
+for one that has pending messages.  It   then  grabs the lock associated
+with the client and sends all waiting output messages.
+
+The price is that we might peek   a significant number of message queues
+before we find one that  contains  messages.   If  this  proves  to be a
+significant  problem,  we  could  mantain  a  queue  of  queues  holding
+messages.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 %%	chatroom_send(+ClientId, +Message) is det.
@@ -353,20 +367,20 @@ broadcasting threads?
 %	Send message to the indicated ClientId.
 %
 %	@arg	Message is either a single message (as accepted by
-%		ws_send/2) or a list of messages.
+%		ws_send/2) or a list of such messages.
 
 chatroom_send(ClientId, Message) :-
-	websocket(_RoomName, _WS, ClientQueue, _Lock, ClientId),
+	websocket(RoomName, _WS, ClientQueue, _Lock, ClientId),
+	chatroom(RoomName, Room),
 	(   is_list(Message)
 	->  maplist(queue_output(ClientQueue), Message)
 	;   queue_output(ClientQueue, Message)
 	),
-	create_output_thread(ClientQueue).
+	create_output_thread(Room, ClientQueue).
 
-create_output_thread(Queue) :-
-	gensym(chatroom_out_all_, Id),
-	thread_create(broadcast_from_queue(Queue, [timeout(0)]), _,
-		      [detached(true), alias(Id)]).
+create_output_thread(Room, Queue) :-
+	chatroom_thread(broadcast_from_queue(Queue, [timeout(0)]),
+			Room, chatroom_out_q_).
 
 %%	chatroom_broadcast(+Room, +Message) is det.
 %
@@ -394,9 +408,9 @@ create_broadcast_threads(Room) :-
 	       create_broadcast_thread(Room)).
 
 create_broadcast_thread(Room) :-
-	gensym(chatroom_out_q_, Id),
-	thread_create(broadcast_from_queues(Room, [timeout(0)]), _,
-		      [detached(true), alias(Id)]).
+	chatroom_thread(broadcast_from_queues(Room, [timeout(0)]),
+			Room, chatroom_out_all_).
+
 
 %%	broadcast_from_queues(+Room, +Options) is det.
 %
@@ -443,3 +457,15 @@ broadcast_from_queue_sync(Queue, Options) :-
 	      fail
 	  ;   !
 	  ).
+
+%%	chatroom_thread(:Goal, +Room, +Task) is det.
+%
+%	Create a (temporary) thread for the chatroom to perform Task. We
+%	created named threads if debugging chatroom(thread) is enabled.
+
+chatroom_thread(Goal, _, Task) :-
+	debugging(chatroom(thread)), !,
+	gensym(Task, Alias),
+	thread_create(Goal, _, [detached(true), alias(Alias)]).
+chatroom_thread(Goal, _, _) :-
+	thread_create(Goal, _, [detached(true)]).
