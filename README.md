@@ -3,7 +3,7 @@
 This repository provides a demonstration for   using  the recently added
 websocket support for realising a  chat  server.   To  use  it, you must
 install *[SWI-Prolog](http://www.swi-prolog.org) 7.1.19 or later*. Then,
-you can load `demo_chat.pl` and run
+you can load `chat.pl` and run
 
     ?- server.
 
