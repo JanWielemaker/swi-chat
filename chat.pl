@@ -115,19 +115,32 @@ chat_page(_Request) :-
 %	styling inline.
 
 chat_page -->
+	style,
 	html([ h1('YAWSBCR: Yet Another ...'),
-	       div([ id(chat),
-		     style('height: 150px; overflow-y:scroll;'+
-			   'border: solid 1px black; padding:5px')
+	       div([ id(chat)
 		   ], []),
 	       input([ placeholder('Type a message and hit RETURN'),
 		       id(input),
-		       onkeypress('handleInput(event)'),
-		       style('width:100%; border:solid 1px black;'+
-			     'padding: 5px; box-sizing: border-box')
+		       onkeypress('handleInput(event)')
 		     ], [])
 	     ]),
 	script.
+
+%%	style//
+%
+%	Emit the style sheet. Typically, this  comes from a static file.
+%	We generate it inline  here  to   keep  everything  in one file.
+%	Second best would be to use a   quasi quotation, but the library
+%	does not provide a  CSS  quasi   quotation  (yet).  As  CSS does
+%	contains few special characters, this is bearable.
+
+style -->
+	html(style([ 'body,html { height:100%; overflow: hidden; }\n',
+		     '#chat { height: calc(100% - 150px); overflow-y:scroll; \c
+			      border: solid 1px black; padding:5px; }\n',
+		     '#input { width:100%; border:solid 1px black; \c
+			       padding: 5px; box-sizing: border-box; }\n'
+		   ])).
 
 %%	script//
 %
