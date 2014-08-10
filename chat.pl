@@ -111,8 +111,7 @@ chat_page(_Request) :-
 
 %%	chat_page//
 %
-%	Generate the web page. To  keep   everything  compact  we do the
-%	styling inline.
+%	Generate the web page.
 
 chat_page -->
 	style,
