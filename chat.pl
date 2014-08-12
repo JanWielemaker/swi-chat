@@ -39,7 +39,7 @@
 :- use_module(library(http/js_write)).
 :- use_module(library(debug)).
 
-:- use_module(chatroom).
+:- use_module(hub).
 
 
 /** <module> A scalable websocket based chat server in SWI-Prolog
@@ -54,18 +54,18 @@ server architecture, but it is  rather   expensive  because it implies a
 Prolog thread for each blocking call.
 
 This demo application implements  a   chatroom  using  _websockets_. The
-implementation uses chatroom.pl, which bundles   the  responsibility for
+implementation uses hub.pl, which bundles   the  responsibility for
 multiple  websockets  in  a  small  number   of  threads  by  using  I/O
-multiplexing based on wait_for_input/3. As a   user of chatroom.pl, life
+multiplexing based on wait_for_input/3. As a   user of hub.pl, life
 is fairly straighforward:
 
-  - Chreate a chatroom using chatroom_create/3 and a thread that
+  - Chreate a hub using hub_create/3 and a thread that
     listens to chat events and broadcasts the changes.
 
   - Serve a web page that provides the chat frontend.  The frontend
     contains JavaScript that establishes a websocket on /chat.  If
     a websocket is obtained, hand it to to the room using
-    chatroom_add/2
+    hub_add/2
 */
 
 
@@ -195,7 +195,7 @@ window.addEventListener("DOMContentLoaded", openWebSocket, false);
 %	it to the chat room.
 
 accept_chat(WebSocket) :-
-	chatroom_add(chat, WebSocket, _Id).
+	hub_add(chat, WebSocket, _Id).
 
 %%	create_chat_room
 %
@@ -206,7 +206,7 @@ accept_chat(WebSocket) :-
 	visitor/1.			% joined visitors
 
 create_chat_room :-
-	chatroom_create(chat, Room, _{}),
+	hub_create(chat, Room, _{}),
 	thread_create(chatroom(Room), _, [alias(chatroom)]).
 
 %%	chatroom(+Room)
@@ -222,14 +222,14 @@ chatroom(Room) :-
 handle_message(Message, Room) :-
 	websocket{opcode:text} :< Message, !,
 	assertz(utterance(Message)),
-	chatroom_broadcast(Room.name, Message).
+	hub_broadcast(Room.name, Message).
 handle_message(Message, _Room) :-
-	chatroom{joined:Id} :< Message, !,
+	hub{joined:Id} :< Message, !,
 	assertz(visitor(Id)),
 	forall(utterance(Utterance),
-	       chatroom_send(Id, Utterance)).
+	       hub_send(Id, Utterance)).
 handle_message(Message, _Room) :-
-	chatroom{left:Id} :< Message, !,
+	hub{left:Id} :< Message, !,
 	retractall(visitor(Id)).
 handle_message(Message, _Room) :-
 	debug(chat, 'Ignoring message ~p', [Message]).

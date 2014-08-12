@@ -34,5 +34,5 @@ also works using Windows 7 as server and IE 11.0 as client.
 
 ## Future
 
-The library chatroom.pl is probably going to   end  up as a core library
-and the demo program will than be added as a demo application.
+The library hub.pl is probably going to end up as a core library and the
+demo program will than be added as a demo application.
