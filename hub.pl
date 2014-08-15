@@ -194,7 +194,7 @@ wait_for_sockets(Hub, Max) :-
 		    'Waiting for ~d queues for ~w sec', [Len, Timeout]),
 	      wait_for_input(Set, ReadySet, Timeout),
 	      (	  ReadySet \== []
-	      ->  debug(hub(wait), 'Data on ~p', [ReadySet]),
+	      ->  debug(hub(ready), 'Data on ~p', [ReadySet]),
 		  maplist(thread_send_message(Queues.ready), ReadySet),
 		  create_reader_threads(Hub),
 		  ord_subtract(Set, ReadySet, NotReadySet)
