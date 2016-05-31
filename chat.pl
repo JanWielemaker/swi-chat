@@ -37,9 +37,8 @@
 :- use_module(library(http/websocket)).
 :- use_module(library(http/html_write)).
 :- use_module(library(http/js_write)).
+:- use_module(library(http/hub)).
 :- use_module(library(debug)).
-
-:- use_module(hub).
 
 
 /** <module> A scalable websocket based chat server in SWI-Prolog
