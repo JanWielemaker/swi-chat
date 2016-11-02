@@ -53,12 +53,12 @@ server architecture, but it is  rather   expensive  because it implies a
 Prolog thread for each blocking call.
 
 This demo application implements  a   chatroom  using  _websockets_. The
-implementation uses hub.pl, which bundles   the  responsibility for
-multiple  websockets  in  a  small  number   of  threads  by  using  I/O
-multiplexing based on wait_for_input/3. As a   user of hub.pl, life
-is fairly straighforward:
+implementation uses library(http/hub), which  bundles the responsibility
+for multiple websockets in a  small  number   of  threads  by  using I/O
+multiplexing based on wait_for_input/3. As  a   user  of hub.pl, life is
+fairly straighforward:
 
-  - Chreate a hub using hub_create/3 and a thread that
+  - Create a hub using hub_create/3 and a thread that
     listens to chat events and broadcasts the changes.
 
   - Serve a web page that provides the chat frontend.  The frontend
