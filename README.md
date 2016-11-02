@@ -2,7 +2,7 @@
 
 This repository provides a demonstration for   using  the recently added
 websocket support for realising a  chat  server.   To  use  it, you must
-install *[SWI-Prolog](http://www.swi-prolog.org) 7.1.19 or later*. Then,
+install *[SWI-Prolog](http://www.swi-prolog.org) 7.1.23 or later*. Then,
 you can load `debug.pl` and run
 
     ?- server.
@@ -31,8 +31,3 @@ start the server:
 The chatserver itself is really simple.   Tested with the server running
 on Linux using firefox and chromium as clients. Anne Ogborn confirmed it
 also works using Windows 7 as server and IE 11.0 as client.
-
-## Future
-
-The library hub.pl is probably going to end up as a core library and the
-demo program will than be added as a demo application.
