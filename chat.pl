@@ -84,8 +84,7 @@ server(Port) :-
 	;   true
 	),
 	create_chat_room,
-	http_server(http_dispatch, [port(Port)]),
-	format(user_error, 'Started server at http://localhost:~d/~n', [Port]).
+	http_server(http_dispatch, [port(Port)]).
 
 % setup the HTTP location. The  first   (/)  loads  the application. The
 % loaded application will create  a   websocket  using  /chat. Normally,
